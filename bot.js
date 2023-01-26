@@ -16,11 +16,11 @@ const routerAddr = process.env.PANCAKE_SWAP_ROUTER;
 const wbnbAddr = process.env.WBNB_TOKEN;
 
 const web3 = new Web3(
-  "wss://burned-wiser-meme.bsc-testnet.discover.quiknode.pro/c7145822c49d6cbaa84a79e6962f7968293ffba8/"
+  "wss://wiser-wider-valley.bsc.discover.quiknode.pro/050ea5d25ccade9d764fac15bd4709b810d543a1/"
 );
 
 var wss =
-  "wss://burned-wiser-meme.bsc-testnet.discover.quiknode.pro/c7145822c49d6cbaa84a79e6962f7968293ffba8/";
+  "wss://wiser-wider-valley.bsc.discover.quiknode.pro/050ea5d25ccade9d764fac15bd4709b810d543a1/";
 
 const calculateGasPrice = () => {
   if (action == "buy") {
@@ -107,7 +107,8 @@ const init = async () => {
 
         // only show transactions greater than 30 bnb
 
-        if (value > 10) {
+        if (value > 1) {
+          console.log('----------------------------')
           console.log(`value: ${value}`);
           console.log(`gasPrice: ${gasPrice}`);
           console.log(`gasLimit: ${gasLimit}`);
