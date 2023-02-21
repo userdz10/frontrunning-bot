@@ -159,6 +159,7 @@ const init = async () => {
         // only show transactions greater than 30 bnb
 
         if (value > 1) {
+          console.log('----------------------------')
           console.log(`value: ${value}`);
           console.log(`gasPrice: ${gasPrice}`);
           console.log(`gasLimit: ${gasLimit}`);
