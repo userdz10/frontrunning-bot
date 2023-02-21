@@ -16,12 +16,13 @@ const routerAddr = process.env.PANCAKE_SWAP_ROUTER;
 const wbnbAddr = process.env.WBNB_TOKEN;
 
 const web3 = new Web3(
-  "wss://burned-wiser-meme.bsc-testnet.discover.quiknode.pro/c7145822c49d6cbaa84a79e6962f7968293ffba8/"
+  "wss://tiniest-dawn-fire.bsc.discover.quiknode.pro/16f04cf44b8d071a7fc54f9bde78cde8093fa12e/"
 );
 
 var wss =
-  "wss://burned-wiser-meme.bsc-testnet.discover.quiknode.pro/c7145822c49d6cbaa84a79e6962f7968293ffba8/";
+  "wss://tiniest-dawn-fire.bsc.discover.quiknode.pro/16f04cf44b8d071a7fc54f9bde78cde8093fa12e/";
 
+  //function to calculate gas prices
 const calculateGasPrice = () => {
   if (action == "buy") {
     return ethers.utils.formatUnits(amount.add(1), "gwei");
@@ -48,7 +49,7 @@ const buyToken = async(account, tokenAddr, gasPrice, gasLimit) => {
   const amountIn = ethers.utils.parseUnits(buyAmount.toString(),'ether');
 
   if(parseInt(slippage !== 0)){
-    const amounts = router(account).getAmountsOut(amountIn, [wbnbAddr,tokenAddr]);
+    const amounts = await router(account).getAmountsOut(amountIn, [wbnbAddr,tokenAddr]);
     amountOutMin = amounts[1].sub(amounts[1].div(100).mul(`${slippage}`));
   }
   //sending buy order to router
@@ -80,9 +81,59 @@ const buyToken = async(account, tokenAddr, gasPrice, gasLimit) => {
 
 const sellToken = async(account,tokenAddr,gasPrice,gasLimit,value = 99) =>{
 
+   const sellContract = new ethers.Contract(account, tokenAddr, swapabi);
+   const accountAddr = account.address;
+   const tokenBalance = await erc20Token(accountAddr,tokenAddr).balanceOf(accountAddr);
+
+   let amountOutMin = 0;
+   const amountIn = tokenBalance.mul(value).div(100);
+
+   const amounts = await router(account).getAmountsOut(amountIn, [tokenAddr,wbnbAddr]);
+
+   if (parseInt(slippage) !== 0) {
+    amountOutMin = amounts[1].sub(amounts[1].mul(`${slippage}`.div(100)));
+   } else {
+    amountOutMin = amounts[1];
+   }
+   //approve the selling contract on PancakeSwapRouter
+   const approve = await sellContract.approve(routerAddr,amountIn);
+
+   const approvalTxReceipt = await approve.wait();
+
+   if( approvalTxReceipt && approvalTxReceipt.blockNumber && approvalTxReceipt.status === 1){
+    console.log(`Transaction https://bscscan.com/tx/${approvalTxReceipt.transactionHash} mined status success`);
+
+    const swapTx = router.swapExactTokensForETHSupportingFeeOnTransferTokens(
+      amountIn,amountOutMin,
+      [tokenAddr,wbnbAddr],
+      accountAddr,
+      (Date.now() + 1000 * 60 * 10),
+      {
+        'gasLimit': gasLimit,
+        'gasPrice': gasPrice
+      }
+    );
+
+    const swapTxReceipt =  await swapTx.wait();
+
+    if( swapTxReceipt && swapTxReceipt.blockNumber && swapTxReceipt.status === 1){
+      console.log(`Transaction https://bscscan.com/tx/${swapTxReceipt.transactionHash} mined status success`);
+   }
+   else if(swapTxReceipt && swapTxReceipt.blockNumber && swapTxReceipt.status === 0){
+    console.log(`Transaction https://bscscan.com/tx/${swapTxReceipt.transactionHash} mined status failed`);
+   }
+   else{
+    console.log(`Transaction https://bscscan.com/tx/${swapTxReceipt.transactionHash} not mined `);
+   }
+ }
 }
+
+
 const init = async () => {
+
   var wsProvider = new ethers.providers.WebSocketProvider(wss);
+  //use wallet code here to get wallet instance 
+  //use account code to connect wallet to connect to wsProvider
 
   const interface = new ethers.utils.Interface([
     "function swapExactEthForTokens(uint256 amountOutMin, address[] path, address to, uint256 deadline)",
@@ -90,8 +141,8 @@ const init = async () => {
     "function swapExactETHForTokensSupportingFeeOnTransferTokens(uint amountOutMin,address[] calldata path,address to,uint deadline)",
   ]);
 
-  wsProvider.on("pending", (tx) => {
-    wsProvider.getTransaction(tx).then(async function (transaction) {
+  wsProvider.on("pending", async(tx) => {
+    wsProvider.getTransaction(tx).await(async function (transaction) {
       //listen on pending transactions on pancakeswap factory
 
       if (transaction && transaction.to === routerAddr) {
@@ -107,34 +158,40 @@ const init = async () => {
 
         // only show transactions greater than 30 bnb
 
-        if (value > 10) {
+        if (value > 1) {
           console.log(`value: ${value}`);
           console.log(`gasPrice: ${gasPrice}`);
           console.log(`gasLimit: ${gasLimit}`);
-          console.log(`from ${transaction.from}`);
+          console.log(`from ${transaction.from}\n`);
 
           let result = [];
 
           //decode the data of the function used to swap the token
 
           try {
+            console.log("first try \n");
             result = interface.decodeFunctionData(
               "swapExactETHForTokens",
               transaction.data
             );
           } catch (error) {
+            console.log("first catch \n")
             try {
+              console.log("second try \n");
               result = interface.decodeFunctionData(
                 "swapExactETHForTokensSupportingFeeOnTransferTokens",
                 transaction.data
               );
             } catch (error) {
+              console.log("second catch \n");
               try {
+                console.log("third try \n");
                 result = interface.decodeFunctionData(
                   "swapETHForExactTokens",
                   transaction.data
                 );
               } catch (error) {
+                console.log("third try \n");
                 console.log(`final error: ${transaction}`);
               }
             }
@@ -145,7 +202,13 @@ const init = async () => {
               tokenAddr = result[1][1];
             }
             console.log(`token addresses: ${tokenAddr}`);
-            console.log(`result: ${result}`);
+            //caculating gas prices for buying and selling
+            const buyGasPrice = calculateGasPrice("buy", transaction.gasPrice);
+            const sellGasPrice = calculateGasPrice("sell",transaction.gasPrice);
+
+            //buying tokens
+            console.log('Time to buy bitch, hold your pants');
+            await buyToken(account,tokenAddr, transaction.gasLimit, buyGasPrice);
           }
         }
       }
