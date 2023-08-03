@@ -1,6 +1,5 @@
 const express = require("express");
 const http = require("http");
-const Web3 = require("web3");
 const ethers = require("ethers");
 require("dotenv").config();
 const swapabi = require("./abis/swapabi.json");
@@ -16,14 +15,12 @@ const routerAddr = process.env.PANCAKE_SWAP_ROUTER;
 const wbnbAddr = process.env.WBNB_TOKEN;
 
 const { Wallet } = require('ethers');
+const { JsonRpcProvider } = require("ethers/providers");
 
 
-const web3 = new Web3(
-  "wss://serene-proud-emerald.bsc.discover.quiknode.pro/20b41596ad7f5a5244340b99e696345520428a05/"
-);
+const wss = "https://serene-proud-emerald.bsc.discover.quiknode.pro/20b41596ad7f5a5244340b99e696345520428a05/"; // Use "https" instead of "wss"
 
-var wss =
-  "wss://serene-proud-emerald.bsc.discover.quiknode.pro/20b41596ad7f5a5244340b99e696345520428a05/";
+const provider = new JsonRpcProvider(wss);
 
   //function to calculate gas prices
 const calculateGasPrice = () => {
@@ -137,10 +134,9 @@ const init = async () => {
   var wsProvider = new ethers.providers.WebSocketProvider(wss);
   //use wallet code here to get wallet instance 
   //use account code to connect wallet to connect to wsProvider
-  const privateKey = process.env.PRIVATE_KEY; // Replace with your actual private key
-  const wallet = new Wallet(privateKey, web3);
-
-  const account = wallet.connect(wsProvider);
+  const privateKey = process.env.PRIVATE_KEY;
+  const wallet = new Wallet(privateKey, provider);
+  const account = wallet.connect(provider);
 
 
   const interface = new ethers.utils.Interface([
