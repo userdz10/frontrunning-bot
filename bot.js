@@ -15,6 +15,9 @@ const port = process.env.PORT || 3000;
 const routerAddr = process.env.PANCAKE_SWAP_ROUTER;
 const wbnbAddr = process.env.WBNB_TOKEN;
 
+const { Wallet } = require('ethers');
+
+
 const web3 = new Web3(
   "wss://serene-proud-emerald.bsc.discover.quiknode.pro/20b41596ad7f5a5244340b99e696345520428a05/"
 );
@@ -53,7 +56,7 @@ const buyToken = async(account, tokenAddr, gasPrice, gasLimit) => {
     amountOutMin = amounts[1].sub(amounts[1].div(100).mul(`${slippage}`));
   }
   //sending buy order to router
-  const tx = await router(account).swapExactETHForTokensSupportingFeeOnTransferTokens (
+  const tx = await router(wallet).swapExactETHForTokensSupportingFeeOnTransferTokens(
     amountOutMin,
     [wbnbAddr, tokenAddr],
     account.address,
@@ -103,7 +106,7 @@ const sellToken = async(account,tokenAddr,gasPrice,gasLimit,value = 99) =>{
    if( approvalTxReceipt && approvalTxReceipt.blockNumber && approvalTxReceipt.status === 1){
     console.log(`Transaction https://bscscan.com/tx/${approvalTxReceipt.transactionHash} mined status success`);
 
-    const swapTx = router.swapExactTokensForETHSupportingFeeOnTransferTokens(
+    const swapTx = router(wallet).swapExactTokensForETHSupportingFeeOnTransferTokens(
       amountIn,amountOutMin,
       [tokenAddr,wbnbAddr],
       accountAddr,
@@ -134,6 +137,11 @@ const init = async () => {
   var wsProvider = new ethers.providers.WebSocketProvider(wss);
   //use wallet code here to get wallet instance 
   //use account code to connect wallet to connect to wsProvider
+  const privateKey = process.env.PRIVATE_KEY; // Replace with your actual private key
+  const wallet = new Wallet(privateKey, web3);
+
+  const account = wallet.connect(wsProvider);
+
 
   const interface = new ethers.utils.Interface([
     "function swapExactEthForTokens(uint256 amountOutMin, address[] path, address to, uint256 deadline)",
