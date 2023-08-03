@@ -16,11 +16,11 @@ const routerAddr = process.env.PANCAKE_SWAP_ROUTER;
 const wbnbAddr = process.env.WBNB_TOKEN;
 
 const web3 = new Web3(
-  "wss://tiniest-dawn-fire.bsc.discover.quiknode.pro/16f04cf44b8d071a7fc54f9bde78cde8093fa12e/"
+  "wss://serene-proud-emerald.bsc.discover.quiknode.pro/20b41596ad7f5a5244340b99e696345520428a05/"
 );
 
 var wss =
-  "wss://tiniest-dawn-fire.bsc.discover.quiknode.pro/16f04cf44b8d071a7fc54f9bde78cde8093fa12e/";
+  "wss://serene-proud-emerald.bsc.discover.quiknode.pro/20b41596ad7f5a5244340b99e696345520428a05/";
 
   //function to calculate gas prices
 const calculateGasPrice = () => {
@@ -41,7 +41,7 @@ const erc20Token = (tokenAddr,account) => {
 
 const buyToken = async(account, tokenAddr, gasPrice, gasLimit) => {
   //amount of tokens to buy, here 0.1 BNB
-   const buyAmount =  0.1;
+   const buyAmount =  0.001;
   //slippage is difference b/w expected price and the actual trade price
    const slippage = 0;
   //amount of token we will receive
